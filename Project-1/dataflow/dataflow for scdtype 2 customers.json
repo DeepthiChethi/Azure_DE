@@ -1,0 +1,200 @@
+{
+	"name": "dataflow for scdtype 2 customers",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_parquet_customer",
+						"type": "DatasetReference"
+					},
+					"name": "customerssource"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "customerssqlsource"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkforcustomers1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkforcustomers2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "renamingcolumns"
+				},
+				{
+					"name": "addinghashkey"
+				},
+				{
+					"name": "lookup"
+				},
+				{
+					"name": "split"
+				},
+				{
+					"name": "union"
+				},
+				{
+					"name": "adding5newcolumns"
+				},
+				{
+					"name": "adding3columns"
+				},
+				{
+					"name": "alterRowforupdate"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          customer_id as integer,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          address as string,",
+				"          city as string,",
+				"          state as string,",
+				"          zip as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> customerssource",
+				"source(output(",
+				"          customer_id as integer,",
+				"          isactive as boolean,",
+				"          hashkey as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'query',",
+				"     store: 'sqlserver',",
+				"     query: 'select customer_id,isactive,hashkey from dev.scdtype2_customers',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> customerssqlsource",
+				"customerssource select(mapColumn(",
+				"          src_customer_id = customer_id,",
+				"          src_first_name = first_name,",
+				"          src_last_name = last_name,",
+				"          src_address = address,",
+				"          src_city = city,",
+				"          src_state = state,",
+				"          src_zip = zip",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> renamingcolumns",
+				"renamingcolumns derive(src_hashkey = crc32(concat(toString(src_customer_id),src_first_name,src_last_name,src_address,src_city,src_state,src_zip))) ~> addinghashkey",
+				"addinghashkey, customerssqlsource lookup(src_customer_id == customer_id,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup",
+				"lookup split(isNull(customer_id),",
+				"     src_customer_id==customer_id&&src_hashkey!=hashkey,",
+				"     disjoint: false) ~> split@(insert, update)",
+				"split@insert, split@update union(byName: true)~> union",
+				"union derive(src_createdby = 'dataflow',",
+				"          src_updatedby = 'dataflow',",
+				"          src_createdate = currentTimestamp(),",
+				"          src_updateddate = currentTimestamp(),",
+				"          src_isactive = true()) ~> adding5newcolumns",
+				"split@update derive(src_udpatedby = 'dataflow-udpated',",
+				"          src_updateddate = currentTimestamp(),",
+				"          src_isactive = false()) ~> adding3columns",
+				"adding3columns alterRow(updateIf(1==1)) ~> alterRowforupdate",
+				"adding5newcolumns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          customer_id as integer,",
+				"          cus_first_name as string,",
+				"          cus_last_name as string,",
+				"          cus_address as string,",
+				"          cus_city as string,",
+				"          cus_state as string,",
+				"          cus_zip as string,",
+				"          hashkey as long,",
+				"          createdby as string,",
+				"          updatedby as string,",
+				"          createddate as timestamp,",
+				"          updateddate as timestamp,",
+				"          isactive as boolean",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dev',",
+				"     tableName: 'scdtype2_customers',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     stagingSchemaName: '',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          customer_id = src_customer_id,",
+				"          cus_first_name = src_first_name,",
+				"          cus_last_name = src_last_name,",
+				"          cus_address = src_address,",
+				"          cus_city = src_city,",
+				"          cus_state = src_state,",
+				"          cus_zip = src_zip,",
+				"          hashkey = src_hashkey,",
+				"          isactive = src_isactive,",
+				"          createdby = src_createdby,",
+				"          updatedby = src_updatedby,",
+				"          createddate = src_createdate,",
+				"          updateddate = src_updateddate",
+				"     )) ~> sinkforcustomers1",
+				"alterRowforupdate sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          customer_id as integer,",
+				"          cus_first_name as string,",
+				"          cus_last_name as string,",
+				"          cus_address as string,",
+				"          cus_city as string,",
+				"          cus_state as string,",
+				"          cus_zip as string,",
+				"          hashkey as long,",
+				"          createdby as string,",
+				"          updatedby as string,",
+				"          createddate as timestamp,",
+				"          updateddate as timestamp,",
+				"          isactive as boolean",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dev',",
+				"     tableName: 'scdtype2_customers',",
+				"     insertable: false,",
+				"     updateable: true,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     keys:['customer_id'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          customer_id = src_customer_id,",
+				"          updatedby = src_udpatedby,",
+				"          updateddate = src_updateddate,",
+				"          isactive = src_isactive",
+				"     )) ~> sinkforcustomers2"
+			]
+		}
+	}
+}

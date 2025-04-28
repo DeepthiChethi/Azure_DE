@@ -1,0 +1,228 @@
+{
+	"name": "dataflow_accounts",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "account_csv_ds",
+						"type": "DatasetReference"
+					},
+					"name": "accountssource"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_customer_csv",
+						"type": "DatasetReference"
+					},
+					"name": "customerssource"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_loanpayments_csv",
+						"type": "DatasetReference"
+					},
+					"name": "loanpaymentssource"
+				},
+				{
+					"dataset": {
+						"referenceName": "loans_ds_csv",
+						"type": "DatasetReference"
+					},
+					"name": "loanssource"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_transactions_csv",
+						"type": "DatasetReference"
+					},
+					"name": "transactionssource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Parquet_ds",
+						"type": "DatasetReference"
+					},
+					"name": "sinkaccounttosilver"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_parquet_customer",
+						"type": "DatasetReference"
+					},
+					"name": "sinkcustomertosilver"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_loanpayment_parq",
+						"type": "DatasetReference"
+					},
+					"name": "sinkloanpayment"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_loan_parq",
+						"type": "DatasetReference"
+					},
+					"name": "sinkloan"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_transaction_parq",
+						"type": "DatasetReference"
+					},
+					"name": "sinkfortransaction"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filterfornullvalues"
+				},
+				{
+					"name": "managingbalanceNullValues"
+				},
+				{
+					"name": "filterfornullvaluescustomer"
+				},
+				{
+					"name": "removingduplicates"
+				},
+				{
+					"name": "deletenullvalues"
+				},
+				{
+					"name": "Nulltozeropaymentamount"
+				},
+				{
+					"name": "deletenullvaluesforit"
+				},
+				{
+					"name": "modifynullvaluestozero"
+				},
+				{
+					"name": "deletenullvaluesfortransactions"
+				},
+				{
+					"name": "transactionamountcheck"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          account_id as integer,",
+				"          customer_id as integer,",
+				"          account_type as string,",
+				"          balance as float",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> accountssource",
+				"source(output(",
+				"          customer_id as short,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          address as string,",
+				"          city as string,",
+				"          state as string,",
+				"          zip as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> customerssource",
+				"source(output(",
+				"          payment_id as short,",
+				"          loan_id as short,",
+				"          payment_date as date,",
+				"          payment_amount as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> loanpaymentssource",
+				"source(output(",
+				"          loan_id as short,",
+				"          customer_id as short,",
+				"          loan_amount as double,",
+				"          interest_rate as double,",
+				"          loan_term as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> loanssource",
+				"source(output(",
+				"          transaction_id as short,",
+				"          account_id as short,",
+				"          transaction_date as date,",
+				"          transaction_amount as double,",
+				"          transaction_type as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> transactionssource",
+				"accountssource filter(!isNull(account_id) &&!isNull(customer_id)) ~> filterfornullvalues",
+				"filterfornullvalues derive(balance = iifNull(balance,0.0)) ~> managingbalanceNullValues",
+				"removingduplicates filter(!isNull(customer_id)&&!isNull(first_name)&&!isNull(last_name)&&!isNull(address)&&!isNull(zip)) ~> filterfornullvaluescustomer",
+				"customerssource aggregate(groupBy(customer_id),",
+				"     each(match(name!='customer_id'), $$ = first($$))) ~> removingduplicates",
+				"loanpaymentssource filter(!isNull(payment_id)&& !isNull(loan_id)) ~> deletenullvalues",
+				"deletenullvalues derive(payment_amount = iifNull(payment_amount, 0.0)) ~> Nulltozeropaymentamount",
+				"loanssource filter(!isNull(loan_id)&&!isNull(customer_id)&&!isNull(interest_rate)&&!isNull(loan_term)) ~> deletenullvaluesforit",
+				"deletenullvaluesforit derive(loan_amount = iifNull(loan_amount, 0.0)) ~> modifynullvaluestozero",
+				"transactionssource filter(!isNull(transaction_id)&&!isNull(account_id)&&!isNull(transaction_type)) ~> deletenullvaluesfortransactions",
+				"deletenullvaluesfortransactions derive(transaction_amount = iifNull(transaction_amount,0.0),",
+				"          transaction_type = trim(transaction_type)) ~> transactionamountcheck",
+				"managingbalanceNullValues sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     mapColumn(",
+				"          account_id,",
+				"          customer_id,",
+				"          account_type,",
+				"          balance",
+				"     )) ~> sinkaccounttosilver",
+				"filterfornullvaluescustomer sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          account_id as integer,",
+				"          customer_id as integer,",
+				"          account_type as string,",
+				"          balance as double",
+				"     ),",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkcustomertosilver",
+				"Nulltozeropaymentamount sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkloanpayment",
+				"modifynullvaluestozero sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkloan",
+				"transactionamountcheck sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkfortransaction"
+			]
+		}
+	}
+}

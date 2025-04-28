@@ -1,0 +1,17 @@
+{
+	"name": "local_ls",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "C:\\Users\\User\\Downloads\\NCPL classes notes\\csv files",
+			"userId": "User",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJmYjkxZTE3Yi01YzEzLTQzNTctOTUyNS01ZTA5YTM4OWQ3NDkiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "selfhostedIRadf",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

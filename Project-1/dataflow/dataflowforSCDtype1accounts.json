@@ -1,0 +1,179 @@
+{
+	"name": "dataflowforSCDtype1accounts",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Parquet_ds",
+						"type": "DatasetReference"
+					},
+					"name": "accountsource"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "accountscdsource"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkforaccount1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_db",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkforaccount2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "renamingcolumns"
+				},
+				{
+					"name": "addinghashkeycolumn"
+				},
+				{
+					"name": "lookup"
+				},
+				{
+					"name": "split"
+				},
+				{
+					"name": "adding4columns"
+				},
+				{
+					"name": "addingnewcolumns"
+				},
+				{
+					"name": "alterRow"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          account_id as integer,",
+				"          customer_id as integer,",
+				"          account_type as string,",
+				"          balance as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> accountsource",
+				"source(output(",
+				"          account_id as integer,",
+				"          hashkey as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'query',",
+				"     store: 'sqlserver',",
+				"     query: 'select account_id,hashkey from dev.scdtype1_accounts',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> accountscdsource",
+				"accountsource select(mapColumn(",
+				"          src_account_id = account_id,",
+				"          src_customer_id = customer_id,",
+				"          src_account_type = account_type,",
+				"          src_balance = balance",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> renamingcolumns",
+				"renamingcolumns derive(src_hashkey = crc32(concat(toString(src_account_id),toString(src_customer_id),src_account_type,toString(src_balance)))) ~> addinghashkeycolumn",
+				"addinghashkeycolumn, accountscdsource lookup(src_account_id == account_id,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup",
+				"lookup split(isNull(account_id),",
+				"     src_account_id==account_id && src_hashkey!=hashkey,",
+				"     disjoint: false) ~> split@(insert, update)",
+				"split@insert derive(src_createddate = currentTimestamp(),",
+				"          src_updateddate = currentTimestamp(),",
+				"          src_createdby = 'dataflow',",
+				"          src_updatedby = 'dataflow') ~> adding4columns",
+				"split@update derive(src_updatedby = 'dataflow-updated',",
+				"          src_updateddate = currentTimestamp()) ~> addingnewcolumns",
+				"addingnewcolumns alterRow(updateIf(1==1)) ~> alterRow",
+				"adding4columns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          account_id as integer,",
+				"          customer_id as integer,",
+				"          account_type as string,",
+				"          balance as double,",
+				"          createdby as string,",
+				"          updatedby as string,",
+				"          createddate as timestamp,",
+				"          updateddate as timestamp,",
+				"          hashkey as long",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dev',",
+				"     tableName: 'scdtype1_accounts',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     stagingSchemaName: '',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          account_id = src_account_id,",
+				"          customer_id = src_customer_id,",
+				"          balance = src_balance,",
+				"          hashkey = src_hashkey,",
+				"          createddate = src_createddate,",
+				"          updateddate = src_updateddate,",
+				"          createdby = src_createdby,",
+				"          updatedby = src_updatedby,",
+				"          account_type = src_account_type",
+				"     )) ~> sinkforaccount1",
+				"alterRow sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          account_id as integer,",
+				"          customer_id as integer,",
+				"          account_type as string,",
+				"          balance as double,",
+				"          createdby as string,",
+				"          updatedby as string,",
+				"          createddate as timestamp,",
+				"          updateddate as timestamp,",
+				"          hashkey as long",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dev',",
+				"     tableName: 'scdtype1_accounts',",
+				"     insertable: false,",
+				"     updateable: true,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     keys:['account_id'],",
+				"     stagingSchemaName: '',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          account_id = src_account_id,",
+				"          customer_id = src_customer_id,",
+				"          account_type = src_account_type,",
+				"          balance = src_balance,",
+				"          updatedby = src_updatedby,",
+				"          updateddate = src_updateddate,",
+				"          hashkey = src_hashkey",
+				"     )) ~> sinkforaccount2"
+			]
+		}
+	}
+}

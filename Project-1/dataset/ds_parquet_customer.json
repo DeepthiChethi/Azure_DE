@@ -1,0 +1,38 @@
+{
+	"name": "ds_parquet_customer",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "silver/customers",
+				"fileSystem": "raw"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "account_id",
+				"type": "INT32"
+			},
+			{
+				"name": "customer_id",
+				"type": "INT32"
+			},
+			{
+				"name": "account_type",
+				"type": "UTF8"
+			},
+			{
+				"name": "balance",
+				"type": "DOUBLE"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

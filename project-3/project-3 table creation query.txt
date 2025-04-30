@@ -1,0 +1,79 @@
+CREATE TABLE project3.Customers (  
+    CustomerID INT PRIMARY KEY,  
+    Name VARCHAR(100),  
+    Email VARCHAR(100),  
+    Address VARCHAR(255)  
+);  
+  
+CREATE TABLE project3.Products (  
+    ProductID INT PRIMARY KEY,  
+    Name VARCHAR(100),  
+    Category VARCHAR(50),  
+    Price DECIMAL(10, 2)  
+);  
+  
+CREATE TABLE project3.OnlineTransactions (  
+    OrderID INT PRIMARY KEY,  
+    CustomerID INT,  
+    ProductID INT,  
+    DateTime DATETIME,  
+    PaymentMethod VARCHAR(50),  
+    Amount DECIMAL(10, 2),  
+    Status VARCHAR(20),  
+    FOREIGN KEY (CustomerID) REFERENCES project3.Customers(CustomerID),  
+    FOREIGN KEY (ProductID) REFERENCES project3.Products(ProductID)  
+);  
+  
+CREATE TABLE project3.Stores (  
+    StoreID INT PRIMARY KEY,  
+    Location VARCHAR(100),  
+    Manager VARCHAR(100),  
+    OpenHours VARCHAR(50)  
+);  
+  
+CREATE TABLE project3.InStoreTransactions (  
+    TransactionID INT PRIMARY KEY,  
+    CustomerID INT,  
+    StoreID INT,  
+    DateTime DATETIME,  
+    Amount DECIMAL(10, 2),  
+    PaymentMethod VARCHAR(50),  
+    FOREIGN KEY (CustomerID) REFERENCES project3.Customers(CustomerID),  
+    FOREIGN KEY (StoreID) REFERENCES project3.Stores(StoreID)  
+);  
+  
+CREATE TABLE project3.Agents (  
+    AgentID INT PRIMARY KEY,  
+    Name VARCHAR(100),  
+    Department VARCHAR(50),  
+    Shift VARCHAR(50)  
+);  
+  
+CREATE TABLE project3.CustomerServiceInteractions (  
+    InteractionID INT PRIMARY KEY,  
+    CustomerID INT,  
+    DateTime DATETIME,  
+    AgentID INT,  
+    IssueType VARCHAR(50),  
+    ResolutionStatus VARCHAR(50),  
+    FOREIGN KEY (CustomerID) REFERENCES project3.Customers(CustomerID),  
+    FOREIGN KEY (AgentID) REFERENCES project3.Agents(AgentID)  
+);  
+  
+CREATE TABLE project3.LoyaltyAccounts (  
+    LoyaltyID INT PRIMARY KEY,  
+    CustomerID INT,  
+    PointsEarned INT,  
+    TierLevel VARCHAR(20),  
+    JoinDate DATE,  
+    FOREIGN KEY (CustomerID) REFERENCES project3.Customers(CustomerID)  
+);  
+  
+CREATE TABLE project3.LoyaltyTransactions (  
+    LoyaltyID INT,  
+    DateTime DATETIME,  
+    PointsChange INT,  
+    Reason VARCHAR(100),  
+    PRIMARY KEY (LoyaltyID, DateTime),  
+    FOREIGN KEY (LoyaltyID) REFERENCES project3.LoyaltyAccounts(LoyaltyID)  
+);   

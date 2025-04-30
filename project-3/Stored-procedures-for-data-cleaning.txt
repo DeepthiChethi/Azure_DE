@@ -1,0 +1,210 @@
+CREATE PROCEDURE dbo.CleanTable
+AS
+BEGIN
+    -- Example: Remove NULLs and trim spaces
+    UPDATE YourTable
+    SET ColumnName = COALESCE(ColumnName, 'DefaultValue');
+    UPDATE YourTable
+    SET ColumnName = TRIM(ColumnName);
+END;
+
+
+what activities will be performed :
+
+Duplicate records
+Missing (NULL) values
+Inconsistent formats (e.g., dates, strings)
+Invalid or outlier values
+Extra spaces or special characters
+
+--Customers SP
+
+CREATE PROCEDURE project3.CleanCustomerTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY CustomerID) AS RowNum
+    FROM project3.Customers
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.Customers
+SET Name = TRIM(Name);
+END;
+
+
+-- Products SP
+
+CREATE PROCEDURE project3.CleanProductsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY ProductID ORDER BY ProductID) AS RowNum
+    FROM project3.Products
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.Products
+SET Name = TRIM(Name);
+UPDATE project3.Products
+SET Category = TRIM(Category);
+--default value
+UPDATE project3.Products
+SET Price = COALESCE(Price, 0.00)
+WHERE Price IS NULL;
+END;
+
+
+
+-- Stores SP
+
+CREATE PROCEDURE project3.CleanStoresTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY StoreID,Manager ORDER BY StoreID) AS RowNum
+    FROM project3.Stores
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.Stores
+SET Manager = TRIM(Manager);
+UPDATE project3.Stores
+SET Location = TRIM(Location);
+END;
+
+
+
+-- Agents SP
+
+CREATE PROCEDURE project3.CleanAgentsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY AgentID,Name,Department ORDER BY AgentID) AS RowNum
+    FROM project3.Agents
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.Agents
+SET Name = TRIM(Name);
+END;
+
+
+-- Online Transactions SP
+
+CREATE PROCEDURE project3.CleanOnlineTransactionsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY OrderID ORDER BY OrderID) AS RowNum
+    FROM project3.OnlineTransactions
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.OnlineTransactions
+SET PaymentMethod = TRIM(PaymentMethod);
+--default value
+UPDATE project3.OnlineTransactions
+SET Amount = COALESCE(Amount, 0.00)
+WHERE Amount IS NULL;
+
+END;
+
+
+
+-- InStoreTransactions SP
+
+CREATE PROCEDURE project3.CleanInStoreTransactionsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY TransactionID ORDER BY TransactionID) AS RowNum
+    FROM project3.InStoreTransactions
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.InStoreTransactions
+SET PaymentMethod = TRIM(PaymentMethod);
+--default value
+UPDATE project3.InStoreTransactions
+SET Amount = COALESCE(Amount, 0.00)
+WHERE Amount IS NULL;
+
+END;
+
+
+-- CustomerServiceInteractions SP
+
+CREATE PROCEDURE project3.CleanCustomerServiceInteractionsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY InteractionID ORDER BY InteractionID) AS RowNum
+    FROM project3.CustomerServiceInteractions
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.CustomerServiceInteractions
+SET IssueType = TRIM(IssueType);
+UPDATE project3.CustomerServiceInteractions
+SET ResolutionStatus = TRIM(ResolutionStatus);
+
+END;
+
+
+-- LoyaltyAccounts SP
+
+CREATE PROCEDURE project3.CleanLoyaltyAccountsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY LoyaltyID ORDER BY LoyaltyID) AS RowNum
+    FROM project3.LoyaltyAccounts
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.LoyaltyAccounts
+SET TierLevel = TRIM(TierLevel);
+--default value
+UPDATE project3.LoyaltyAccounts
+SET PointsEarned = COALESCE(PointsEarned, 0)
+WHERE PointsEarned IS NULL;
+
+END;
+
+
+
+-- LoyaltyTransactions SP
+
+CREATE PROCEDURE project3.CleanLoyaltyTransactionsTable
+AS
+BEGIN
+--removing duplicate records
+WITH CTE AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY LoyaltyID ORDER BY LoyaltyID) AS RowNum
+    FROM project3.LoyaltyTransactions
+)
+DELETE FROM CTE WHERE RowNum > 1;
+--trim the records
+UPDATE project3.LoyaltyTransactions
+SET Reason = TRIM(Reason);
+
+END;

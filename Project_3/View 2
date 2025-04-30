@@ -1,0 +1,33 @@
+CREATE VIEW View_CustomerSegmentation AS
+WITH CustomerSpending AS (
+    SELECT 
+        c.CustomerID,
+        c.Name,
+        SUM(t.Amount) AS TotalSpend,
+        COUNT(t.OrderID) AS PurchaseFrequency,
+        l.TierLevel
+    FROM 
+        dbo.Customers c
+    LEFT JOIN 
+        OnlineTransactions t ON c.CustomerID = t.CustomerID
+    LEFT JOIN 
+        LoyaltyAccounts l ON c.CustomerID = l.CustomerID
+    GROUP BY 
+        c.CustomerID, c.Name, l.TierLevel
+)
+SELECT 
+    CustomerID,
+    Name,
+    TotalSpend,
+    PurchaseFrequency,
+    TierLevel,
+    CASE 
+        WHEN TotalSpend >= (SELECT PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY TotalSpend) OVER ()) THEN 'High-Value Customer'
+        WHEN PurchaseFrequency = 1 THEN 'One-Time Buyer'
+        WHEN TierLevel = 'Gold' OR TierLevel = 'Platinum' THEN 'Loyalty Champion'
+        ELSE 'Regular Customer'
+    END AS CustomerSegment
+FROM 
+    CustomerSpending;
+
+SELECT * FROM View_CustomerSegmentation

@@ -1,0 +1,19 @@
+CREATE VIEW View_AgentInteractionStats AS
+SELECT 
+    a.AgentID,
+    a.Name AS AgentName,
+    a.Department,
+    a.Shift,
+    COUNT(csi.InteractionID) AS TotalInteractions,
+    SUM(CASE WHEN csi.ResolutionStatus = 'Resolved' THEN 1 ELSE 0 END) AS ResolvedCount,
+    CAST(
+        100.0 * SUM(CASE WHEN csi.ResolutionStatus = 'Resolved' THEN 1 ELSE 0 END) 
+        / NULLIF(COUNT(csi.InteractionID), 0) AS DECIMAL(5,2)
+    ) AS ResolutionRatePercent
+FROM 
+    Agents a
+LEFT JOIN 
+    CustomerServiceInteractions csi ON a.AgentID = csi.AgentID
+GROUP BY 
+    a.AgentID, a.Name, a.Department, a.Shift;
+

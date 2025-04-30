@@ -1,0 +1,21 @@
+CREATE VIEW View_AOV_Per_Product_Category_Location AS
+SELECT 
+    p.ProductID,
+    p.Name AS ProductName,
+    p.Category,
+    s.Location AS StoreLocation,
+    COUNT(ot.OrderID) AS TotalOrders,
+    SUM(ot.Amount) AS TotalAmount,
+    SUM(ot.Amount) * 1.0 / COUNT(ot.OrderID) AS AvgOrderValue
+FROM 
+    OnlineTransactions ot
+JOIN 
+    Products p ON ot.ProductID = p.ProductID
+JOIN 
+    InStoreTransactions ist ON ot.CustomerID = ist.CustomerID
+JOIN 
+    Stores s ON ist.StoreID = s.StoreID
+GROUP BY 
+    p.ProductID, p.Name, p.Category, s.Location;
+
+SELECT * from View_AOV_Per_Product_Category_Location

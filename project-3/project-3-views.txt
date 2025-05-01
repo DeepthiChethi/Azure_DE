@@ -1,0 +1,57 @@
+CREATE VIEW analytics.View_AverageOrderValue AS
+SELECT 
+    p.ProductID,
+    p.Name AS ProductName,
+    p.Category,
+    s.StoreID,
+    s.Location,
+    SUM(t.Amount) / COUNT(t.OrderID) AS AverageOrderValue
+FROM 
+    project3.OnlineTransactions t
+INNER JOIN 
+    project3.Products p ON t.ProductID = p.ProductID
+LEFT JOIN 
+    project3.Stores s ON s.StoreID IS NOT NULL  -- since online might not have a store directly, kept flexible
+GROUP BY 
+    p.ProductID, p.Name, p.Category, s.StoreID, s.Location;
+
+
+
+
+----------------------------------
+
+CREATE VIEW analytics.View_CustomerSegmentation AS
+WITH CustomerSpending AS (
+    SELECT 
+        c.CustomerID,
+        c.Name,
+        SUM(t.Amount) AS TotalSpend,
+        COUNT(t.OrderID) AS PurchaseFrequency,
+        l.TierLevel
+    FROM 
+        project3.Customers c
+    LEFT JOIN 
+        project3.OnlineTransactions t ON c.CustomerID = t.CustomerID
+    LEFT JOIN 
+        project3.LoyaltyAccounts l ON c.CustomerID = l.CustomerID
+    GROUP BY 
+        c.CustomerID, c.Name, l.TierLevel
+)
+SELECT 
+    CustomerID,
+    Name,
+    TotalSpend,
+    PurchaseFrequency,
+    TierLevel,
+    CASE 
+        WHEN TotalSpend >= (SELECT PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY TotalSpend) OVER ()) THEN 'High-Value Customer'
+        WHEN PurchaseFrequency = 1 THEN 'One-Time Buyer'
+        WHEN TierLevel = 'Gold' OR TierLevel = 'Platinum' THEN 'Loyalty Champion'
+        ELSE 'Regular Customer'
+    END AS CustomerSegment
+FROM 
+    CustomerSpending;
+
+
+---------------------------------------------------------
+

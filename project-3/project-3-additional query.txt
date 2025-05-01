@@ -1,10 +1,10 @@
-drop table project3.Customers;
-drop table project3.Products;
-drop table project3.Stores;
+drop table project3.Customers; -
+drop table project3.Products; -
+drop table project3.Stores; -
 drop table project3.Agents;
-drop table project3.OnlineTransactions;
-drop table project3.InStoreTransactions;
-drop table project3.CustomerServiceInteractions;
+drop table project3.OnlineTransactions; - 
+drop table project3.InStoreTransactions; - 
+drop table project3.CustomerServiceInteractions; -
 drop table project3.LoyaltyAccounts;
 drop table project3.LoyaltyTransactions;
 

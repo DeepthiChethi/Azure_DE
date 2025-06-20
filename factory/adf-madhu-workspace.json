@@ -1,0 +1,9 @@
+{
+	"name": "adf-madhu-workspace",
+	"location": "canadacentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "de143826-1469-442a-af89-82e56c794763",
+		"tenantId": "f92b0196-3eb1-4ac0-8473-62424449df08"
+	}
+}
